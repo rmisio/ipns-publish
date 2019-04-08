@@ -7,20 +7,21 @@ class App extends Component {
 
   }
 
-  componentDidMount() {
-    console.log('i be mounted');
+  async componentDidMount() {
+    const node = window.node = new IPFS({
+      EXPERIMENTAL: {
+        pubsub: true,
+        ipnsPubsub: true,
+      }
+    });
 
-    const node = this.node = new IPFS();
+    console.log(await node.version());
 
     node.on('ready', async () => {
-      console.log('the node is moo');
-      window.moo = this.node;
-
-      // window.zillow = node.libp2p.handle('/openbazaar/app/1.0.0', (protocol, conn) => {
-      //   console.log('pulling in incoming message');
-      // });
-
       const nodeId = await node.id();
+      console.log(`my node id is ${nodeId.id}`);
+
+      const gatewayBase = 'https://gateway.ipfs.io';
       const randomToken = Math.random().toString().slice(0, 6);
 
       const fileAdded = await node.add({
@@ -28,18 +29,24 @@ class App extends Component {
         content: Buffer.from(`I am happy. I am good. (${randomToken})`),
       })
 
-      console.log('Added file:');
+      const fileIpfsUrl = `/ipfs/${fileAdded[0].hash}`;
+      console.log(`Added file - ${gatewayBase}${fileIpfsUrl}`);
       console.dir(fileAdded);
 
-      const filePublished = await node.name.publish(`/ipfs/${fileAdded[0].hash}`);
+      console.log(`publishing ${fileIpfsUrl}`);
+      const filePublished = await node.name.publish(fileIpfsUrl);
 
       console.log('File published.');
       console.dir(filePublished);
 
-      const nameResolve = await node.name.resolve(`/ipns/${nodeId.id}/happy.times`);
+      const fileIpnsUrl = `/ipns/${nodeId.id}/happy.times`;
+      console.log(`resolving via ${fileIpnsUrl}`);
+      const nameResolve = await node.name.resolve(fileIpnsUrl);
 
       console.log('Name resolved. Boom.');
       console.dir(nameResolve);
+
+      console.log(`File published to ipns - ${gatewayBase}${fileIpnsUrl}`);
 
       const fileCat = await node.cat(nameResolve.path);
 
